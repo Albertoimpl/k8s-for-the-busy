@@ -1,0 +1,10 @@
+FROM openjdk:8
+
+VOLUME /tmp
+
+COPY BOOT-INF/lib /myapp/lib
+COPY META-INF /myapp/META-INF
+COPY BOOT-INF/classes /myapp
+ENTRYPOINT ["java","-cp","myapp:myapp/lib/*","com/albertoimpl/devoxxbe/containers/ContainersApplication"]
+
+EXPOSE 8080

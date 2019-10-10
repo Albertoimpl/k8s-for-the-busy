@@ -1,0 +1,27 @@
+FROM openjdk:8-alpine as build
+
+WORKDIR app
+
+COPY gradlew .
+COPY .gradle .gradle
+COPY build.gradle build.gradle
+COPY gradle gradle
+COPY settings.gradle settings.gradle
+COPY src src
+
+RUN ./gradlew assemble
+RUN mkdir -p target
+RUN cd target && jar -xf ../build/libs/myapp-0.0.1-SNAPSHOT.jar
+RUN ls target
+
+FROM gcr.io/distroless/java:8
+
+VOLUME /tmp
+
+COPY --from=build /app/target/BOOT-INF/lib /app/lib
+COPY --from=build /app/target/META-INF /app/META-INF
+COPY --from=build /app/target/BOOT-INF/classes /app
+
+ENTRYPOINT ["java","-cp","myapp:myapp/lib/*","com/albertoimpl/devoxxbe/containers/ContainersApplication"]
+
+EXPOSE 8080

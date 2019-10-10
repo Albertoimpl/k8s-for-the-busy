@@ -1,0 +1,466 @@
+= Containerizing Applications
+
+A container is the entry ticket to kubernetes.
+
+Running containers as a part of your infrastructure is the new trend and follows what big companies have been doing for years.
+
+Finding base images on DockerHub and producing your application images from them is very easy but there are some aspects and risks we should consider.
+
+We will describe different strategies for containerizing your java applications and how to reduce the image size.
+
+We are going to take a Spring Boot application as an example created from https://start.spring.io
+
+```
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@SpringBootApplication
+@RestController
+public class Application {
+
+    @RequestMapping("/")
+    public String home() {
+        return "Hello, World";
+    }
+
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+
+}
+```
+and convert it into an executable JAR file:
+```
+./gradlew clean assemble
+```
+
+This will give us our hello world app jar file in
+```
+/build/libs/myapp-0.0.1-SNAPSHOT.jar
+```
+
+== Basic dockerfile
+
+Let's start with creating manually a Dockerfile:
+
+```
+FROM openjdk:8
+
+COPY app/build/libs/myapp-0.0.1-SNAPSHOT.jar /opt/myapp/
+WORKDIR /opt/myapp/
+CMD ["java", "-jar", "/opt/myapp/myapp-0.0.1-SNAPSHOT.jar"]
+EXPOSE 8080
+```
+
+`FROM` tells Docker to use a given image with its tag as the base image.
+
+`COPY` files from the local file-system to the image directory.
+
+`WORKDIR` our work directory
+
+`CMD` are the arguments for that executable
+
+`EXPOSE` is the port our application is going to be exposed as
+
+===  Security alert!
+
+It is tempting to just do a `COPY .` when building an image.
+The above command will copy _everything_, including files like `.env` files containing our secrets.
+Please, use a `.dockeringore` which is like a `.gitignore` but for Docker images.
+
+With that in mind, let's build our first image:
+```
+→ docker build -t albertoimpl/myapp . -f Dockerfile1
+```
+
+With this, we have the basics, we have an image that works and can be run everywhere.
+
+```
+→ docker run -p 8080:8080 albertoimpl/myapp
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.1.8.RELEASE)
+
+2019-09-20 15:22:39.915  INFO 1 --- [           main] c.a.d.containers.ContainersApplication   : Starting ContainersApplication on 6f66a251ae87 with PID 1 (/opt/myapp/myapp-0.0.1-SNAPSHOT.jar started by root in /opt/myapp)
+2019-09-20 15:22:39.922  INFO 1 --- [           main] c.a.d.containers.ContainersApplication   : No active profile set, falling back to default profiles: default
+2019-09-20 15:22:42.022  INFO 1 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8080 (http)
+2019-09-20 15:22:42.090  INFO 1 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2019-09-20 15:22:42.090  INFO 1 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.24]
+2019-09-20 15:22:42.284  INFO 1 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2019-09-20 15:22:42.284  INFO 1 --- [           main] o.s.web.context.ContextLoader            : Root WebApplicationContext: initialization completed in 2255 ms
+2019-09-20 15:22:42.716  INFO 1 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2019-09-20 15:22:43.212  INFO 1 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8080 (http) with context path ''
+2019-09-20 15:22:43.219  INFO 1 --- [           main] c.a.d.containers.ContainersApplication   : Started ContainersApplication in 3.965 seconds (JVM running for 4.717)
+```
+
+And we can talk to it
+
+```
+→ curl 127.0.0.1:8080/
+Hello, World
+```
+
+A container was created with an ID and an _almost_ random name:
+
+```
+ → docker ps
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                    NAMES
+8c315a54ed41        albertoimpl/myapp   "java -jar /opt/myap…"   12 seconds ago      Up 11 seconds       0.0.0.0:8080->8080/tcp   cranky_khayyam
+```
+
+Yes, we said _almost_, because you would think this is a random concatenation of two dictionaries of words, but it isn't.
+There is one combination that will never happen: https://github.com/moby/moby/blob/master/pkg/namesgenerator/names-generator.go#L844
+
+```
+func GetRandomName(retry int) string {
+begin:
+	name := fmt.Sprintf("%s_%s", left[rand.Intn(len(left))], right[rand.Intn(len(right))])
+	if name == "boring_wozniak" /* Steve Wozniak is not boring */ {
+		goto begin
+	}
+
+	if retry > 0 {
+		name = fmt.Sprintf("%s%d", name, rand.Intn(10))
+	}
+	return name
+}
+```
+
+Yes, you read right, because he can't never be boring.
+
+Moving forward. Let's go a bit deeper to see what we just did.
+
+```
+→ docker images
+REPOSITORY                           TAG                 IMAGE ID            CREATED             SIZE
+albertoimpl/myapp                    latest              3401ce1ae307        4 seconds ago       505MB
+openjdk                              8                   e8d00769c8a8        6 days ago          488MB
+```
+
+Isn't it a bit crazy to have a half a gigabyte image for a hello world?
+That means that every time we do a change in our image we will have to upload and download half a gigabyte.
+
+== Layers
+
+A Docker image consists of a series of read-only layers each of which represents a Dockerfile instruction. The layers are stacked and each one is a delta of the changes from the previous layer.
+
+Images that share layers and are smaller in size are quicker to transfer and deploy.
+
+In order to run an application we need to worry about: The Operating System. the JVM-JDK, our jar and the dependencies.
+
+The problem with what we have built before is that now, every time our jarfile changes, we have to rebuild a big chunky part of our image.
+
+So, we could potentially split our app and create layers for jars, snapshots, classes.
+
+A Spring Boot fat jar naturally has "layers" because of the way that the jar itself is packaged.
+
+If we unpack it first it will already be divided into external and internal dependencies.
+
+To do this in one step in the docker build, we need to unpack the jar first.
+
+```
+→ mkdir target
+→ cd target
+→ jar -xf ../app/build/libs/myapp-0.0.1-SNAPSHOT.jar
+→ cd ..
+→ docker build -t albertoimpl/myapp target -f Dockerfile2
+```
+
+```
+FROM openjdk:8
+
+VOLUME /tmp
+
+COPY BOOT-INF/lib /myapp/lib
+COPY META-INF /myapp/META-INF
+COPY BOOT-INF/classes /myapp
+ENTRYPOINT ["java","-cp","myapp:myapp/lib/*","com/albertoimpl/devoxxbe/containers/ContainersApplication"]
+
+EXPOSE 8080
+```
+
+There are now three layers, with all the application resources in the later two layers.
+
+If the application dependencies don’t change, then the first `/lib` layer will not change making our development process much faster.
+
+```
+REPOSITORY          TAG                 IMAGE ID            CREATED              SIZE
+albertoimpl/myapp   latest              2d8970f0c459        About a minute ago   505MB
+<none>              <none>              1b4b0082f772        About a minute ago   505MB
+<none>              <none>              c774340e0e17        About a minute ago   505MB
+<none>              <none>              c15fb9f28a72        About a minute ago   505MB
+openjdk             8                   e8d00769c8a8        6 days ago           488MB
+```
+
+== multi-stage builds
+
+Later docker version added support for multi-stage builds, meaning that we can take the output of the first and make it the input of the second one.
+
+```
+docker build -t albertoimpl/myapp app -f Dockerfile3
+```
+
+```
+FROM openjdk:8 as build
+
+WORKDIR app
+
+COPY gradlew .
+COPY .gradle .gradle
+COPY build.gradle build.gradle
+COPY gradle gradle
+COPY settings.gradle settings.gradle
+COPY src src
+
+RUN ./gradlew assemble
+RUN mkdir -p target
+RUN cd target && jar -xf ../build/libs/myapp-0.0.1-SNAPSHOT.jar
+RUN ls target
+
+FROM openjdk:8
+VOLUME /tmp
+
+COPY --from=build /app/target/BOOT-INF/lib /app/lib
+COPY --from=build /app/target/META-INF /app/META-INF
+COPY --from=build /app/target/BOOT-INF/classes /app
+
+ENTRYPOINT ["java","-cp","myapp:myapp/lib/*","com/albertoimpl/devoxxbe/containers/ContainersApplication"]
+
+EXPOSE 8080
+```
+
+Still
+```
+REPOSITORY          TAG                 IMAGE ID            CREATED              SIZE
+albertoimpl/myapp   latest              349db4730680        About a minute ago   505MB
+<none>              <none>              a99ea38d50f8        About a minute ago   754MB
+openjdk             8                   e8d00769c8a8        6 days ago           488MB
+```
+
+
+If we update the text
+```
+	@RequestMapping("/")
+	public String home() {
+		return "Hello, All";
+	}
+
+```
+
+```
+→ docker build -t albertoimpl/myapp app -f Dockerfile3
+Sending build context to Docker daemon  21.38MB
+Step 1/19 : FROM openjdk:8 as build
+ ---> e8d00769c8a8
+Step 2/19 : WORKDIR app
+ ---> Using cache
+ ---> 153e39cada0c
+Step 3/19 : COPY gradlew .
+ ---> Using cache
+ ---> db9017aa1ea8
+Step 4/19 : COPY .gradle .gradle
+ ---> Using cache
+ ---> c885e7d42c1c
+Step 5/19 : COPY build.gradle build.gradle
+ ---> Using cache
+ ---> 871414bbd63e
+Step 6/19 : COPY gradle gradle
+ ---> Using cache
+ ---> 314c9b647626
+Step 7/19 : COPY settings.gradle settings.gradle
+ ---> Using cache
+ ---> 653b16c85103
+Step 8/19 : COPY src src
+ ---> f65658c17ea9
+Step 9/19 : RUN ./gradlew assemble
+ ---> Running in 607243b68616
+Downloading https://services.gradle.org/distributions/gradle-5.6.2-bin.zip
+.........................................................................................
+
+Welcome to Gradle 5.6.2!
+
+Here are the highlights of this release:
+ - Incremental Groovy compilation
+ - Groovy compile avoidance
+ - Test fixtures for Java projects
+ - Manage plugin versions via settings script
+
+For more details see https://docs.gradle.org/5.6.2/release-notes.html
+
+Starting a Gradle Daemon (subsequent builds will be faster)
+> Task :compileJava
+> Task :processResources
+> Task :classes
+> Task :bootJar
+> Task :jar SKIPPED
+> Task :assemble
+
+BUILD SUCCESSFUL in 52s
+3 actionable tasks: 3 executed
+Removing intermediate container 607243b68616
+ ---> ed5b9e2f6999
+Step 10/19 : RUN mkdir -p target
+ ---> Running in 8f9b2b0c8c3f
+Removing intermediate container 8f9b2b0c8c3f
+ ---> e6ae18806aab
+Step 11/19 : RUN cd target && jar -xf ../build/libs/myapp-0.0.1-SNAPSHOT.jar
+ ---> Running in 3a0fb9c1ad08
+Removing intermediate container 3a0fb9c1ad08
+ ---> 5ba70eacaa63
+Step 12/19 : RUN ls target
+ ---> Running in e5bf40bf0e94
+BOOT-INF
+META-INF
+org
+Removing intermediate container e5bf40bf0e94
+ ---> 8dc69fb83156
+Step 13/19 : FROM openjdk:8
+ ---> e8d00769c8a8
+Step 14/19 : VOLUME /tmp
+ ---> Using cache
+ ---> e5a280821d0c
+Step 15/19 : COPY --from=build /app/target/BOOT-INF/lib /app/lib
+ ---> Using cache
+ ---> 165a3bc4268a
+Step 16/19 : COPY --from=build /app/target/META-INF /app/META-INF
+ ---> Using cache
+ ---> 27f1ca582112
+Step 17/19 : COPY --from=build /app/target/BOOT-INF/classes /app
+ ---> 9ea3ecd7901c
+Step 18/19 : ENTRYPOINT ["java","-cp","myapp:myapp/lib/*","com/albertoimpl/devoxxbe/containers/ContainersApplication"]
+ ---> Running in f2c34ca9dd62
+Removing intermediate container f2c34ca9dd62
+ ---> a17242a364ad
+Step 19/19 : EXPOSE 8080
+ ---> Running in b06b6af6aabc
+Removing intermediate container b06b6af6aabc
+ ---> 3edaf0a7b930
+Successfully built 3edaf0a7b930
+Successfully tagged albertoimpl/myapp:latest
+```
+
+Will use the cache in almost all the steps.
+
+== The importance of the base image
+
+A lot of what is in our base image is not necessary.
+Increases costs, reduces developer productivity and creates a larger scope for compliance tools.
+We are going to take a look to two of the most popular distributions.
+
+=== Distroless
+
+The image Google uses to deploy software in production.
+This image contains a minimal Linux, OpenJDK-based runtime.
+
+However, sometimes we may want to ssh into our container, but there is nos shell in our container.
+That is an amazing thing from the security perspective and there are alternatives that we will talk about instead of SSHing into production.
+
+But just in case we are going to provide another solution.
+
+```
+docker build -t albertoimpl/myapp app -f Dockerfile5
+```
+
+```
+ → docker images
+REPOSITORY               TAG                 IMAGE ID            CREATED             SIZE
+albertoimpl/myapp        latest              6d69e5b15226        4 seconds ago       142MB
+openjdk                  8                   e8d00769c8a8        6 days ago          488MB
+openjdk                  8-alpine            a3562aa0b991        4 months ago        105MB
+gcr.io/distroless/java   8                   2ee039e7a421        49 years ago        125MB
+```
+
+Our image went down to 142MB
+
+=== Alpine
+We can make it even smaller by using alpine.
+Most linux distribution are based on glibc not muslc, they both implement the same interface but they have different goals, one is faster and muslc uses less space and is written with security in mind.
+That means that it may lead to unexpected behaviour because the standard C library is different.
+
+```
+docker build -t albertoimpl/myapp app -f Dockerfile4
+```
+
+```
+ docker images
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+albertoimpl/myapp   latest              8314b5c99ec7        4 minutes ago       122MB
+<none>              <none>              09071a3932c1        4 minutes ago       371MB
+<none>              <none>              3edaf0a7b930        8 minutes ago       505MB
+<none>              <none>              8dc69fb83156        8 minutes ago       754MB
+<none>              <none>              349db4730680        11 minutes ago      505MB
+<none>              <none>              a99ea38d50f8        11 minutes ago      754MB
+openjdk             8                   e8d00769c8a8        6 days ago          488MB
+openjdk             8-alpine            a3562aa0b991        4 months ago        105MB
+```
+
+We have now a 122MB image.
+
+=== Trade-offs
+
+We have been pursuing smaller images but what do we really want to achieve?
+
+With alpine we will have smaller images
+With distroless we will have a smaller attack surface area
+
+That is a trade-off you'll have to make
+
+== Jib
+
+Doing all that for every single image is a bit of a pain, plus new versions of Docker will contain better improvements and new good practices will appear.
+
+A tool that groups all the good practices we mention before is `Jib`.
+
+With Jib no Dockerfile needs to be created and Jib does not need a docker daemon.
+
+This is great because it can lead to much more consistency across app deployment.
+
+Just by adding this plugin:
+
+```
+plugins {
+	id 'com.google.cloud.tools.jib' version '1.6.1'
+}
+```
+
+We can build an image that is the same size as the one we had before without worrying about all the setup we just did.
+
+```
+ → ./gradlew jibDockerBuild
+To honour the JVM settings for this build a new JVM will be forked. Please consider using the daemon: https://docs.gradle.org/5.6.2/userguide/gradle_daemon.html.
+Daemon will be stopped at the end of the build stopping after processing
+
+> Task :jibDockerBuild
+Tagging image with generated image reference myapp-jib:0.0.1-SNAPSHOT. If you'd like to specify a different tag, you can set the jib.to.image parameter in your build.gradle, or use the --image=<MY IMAGE> commandline flag.
+
+Containerizing application to Docker daemon as myapp-jib:0.0.1-SNAPSHOT...
+
+Container entrypoint set to [java, -cp, /app/resources:/app/classes:/app/libs/*, com.albertoimpl.devoxxbe.containers.ContainersApplication]
+
+Built image to Docker daemon as myapp-jib:0.0.1-SNAPSHOT
+Executing tasks:
+[==============================] 100.0% complete
+
+
+BUILD SUCCESSFUL in 17s
+3 actionable tasks: 1 executed, 2 up-to-date
+```
+
+And we can see how the last image is the same as the one we manually created.
+
+```
+→ docker images
+REPOSITORY                           TAG                 IMAGE ID            CREATED             SIZE
+albertoimpl/myapp                    latest              59ddd1175302        7 days ago          142MB
+gcr.io/distroless/java               8                   2ee039e7a421        49 years ago        125MB
+myapp-jib                            0.0.1-SNAPSHOT      272b59084a4c        49 years ago        142MB
+```
+
+It can be configured to use different base images and we can configure where do we want it published.
