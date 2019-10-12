@@ -57,6 +57,39 @@ Open Source registry started by VMWare, now part of the CNCF. It enables users t
 
 === Deployment
 
+We can get jib to push the image to the registry:
+```
+ ./gradlew jib --image=albertoimpl/myapp-jib
+To honour the JVM settings for this build a new JVM will be forked. Please consider using the daemon: https://docs.gradle.org/5.6.2/userguide/gradle_daemon.html.
+Daemon will be stopped at the end of the build stopping after processing
+
+> Task :jib
+
+Containerizing application to albertoimpl/myapp-jib...
+The credential helper (docker-credential-desktop) has nothing for server URL: registry-1.docker.io
+
+Got output:
+
+credentials not found in native keychain
+
+The credential helper (docker-credential-desktop) has nothing for server URL: registry.hub.docker.com
+
+Got output:
+
+credentials not found in native keychain
+
+
+Container entrypoint set to [java, -cp, /app/resources:/app/classes:/app/libs/*, com.albertoimpl.devoxxbe.containers.ContainersApplication]
+
+Built and pushed image as albertoimpl/myapp-jib
+Executing tasks:
+[==============================] 100.0% complete
+
+
+BUILD SUCCESSFUL in 34s
+3 actionable tasks: 3 executed
+```
+
 Now that we have a tagged image in a registry, we are ready to deploy it into kubernetes.
 
 === <<k8s-basics/README.adoc#,K8s basics>>
