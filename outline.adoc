@@ -1,0 +1,51 @@
+** Kubernetes for the busy developer
+*** Why this tutorial
+*** What this tutorial is not about
+*** Building an image from source
+**** Basic dockerfile
+**** Security alert!
+**** Layers
+**** The importance of the base image
+***** Distroless
+***** Alpine
+***** Trade-offs
+**** Jib
+*** Tagging
+*** Registries
+**** DockerHub
+**** GRC/ACR/ECR
+**** Harbor
+*** Deployment
+**** K8s basics
+***** Local environment
+****** KIND
+****** Minikube
+***** Pod
+***** Service
+*** ReplicaSets
+*** Deployments
+****** Dekorate
+****** kubecfg
+
+*** Local development workflow
+**** Skaffold
+**** Kustomize
+***** Profiles
+
+*** Debugging
+*** Log aggregation
+
+*** Persistence data storage
+*** Externalised configuration and secrets
+*** Secrets management
+*** Secrets on git
+
+*** Networking
+*** Service to service communication and discovery
+*** Ingress controllers
+*** TLS Termination
+
+*** Bonus Points
+**** Observability
+**** CNAB
+**** Okteto
