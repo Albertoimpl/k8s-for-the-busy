@@ -14,7 +14,9 @@ alias k='kubectl'
 
 Kubernetes IN Docker
 
-kind is a tool for running local Kubernetes clusters using Docker container "nodes".
+KIND is a tool for running local Kubernetes clusters using Docker containers as nodes.
+Easier to start and delete. Takes about 20 seconds to spin a new cluster.
+
 
 ```
 kind create cluster
@@ -46,7 +48,7 @@ If you can use a real development cluster hosted in the cloud, just use it.
 
 == Pod
 
-Smallest deployable unit is a pod. Literally a Pod is a group of whales.
+Smallest deployable unit is a pod. Literally, a Pod is a group of whales.
 
 Typically, we will have a one to one app to pod.
 If you have a frontend, a backend and a database, you don't want to scale them the same way so they will very likely live in different pods.
@@ -106,17 +108,16 @@ Status:             Running
 IP:                 10.244.0.4
 ```
 
-But if we try to curl, it will timeout and it is because, by default our pods can't be accessed outside from the outside world.
+But if we try to curl, it will timeout and it is because by default our pods can't be accessed outside from the outside world.
 
-// TODO expand
 Kubernetes Pods are mortal. They are born and when they die, they are not resurrected.
 
 == Service
 
 For us to access our pod, we need to create a service.
-A service is is an abstraction which defines a set of Pods and a policy to access them
+A service is an abstraction which defines a set of Pods and a policy to access them
 
-There main types are:
+The main types are:
 `ClusterIP`: Exposes only inside the cluster. This is the default ServiceType.
 
 `NodePort`: Exposes a port through the node to the world.
@@ -170,7 +171,7 @@ Hello, All
 If we deploy pods ourselves we are responsible for its lifecycle.
 If our pod dies for whatever reason it will be dead until we act on it.
 
-ReplicaSets are used to  to maintain the number and running state of pods.
+ReplicaSets are used to maintain the number and running state of pods.
 You can also configure the ReplicaSet to autoscale based on the amount of CPU load the node is experiencing.
 
 ```
@@ -196,7 +197,7 @@ spec:
           resources: {}
 ```
 
-If we take a closer look to the diff we can see how the replicaset object contains a pod object.
+If we take a closer look to the diff we can see how the Replicaset object contains a pod object.
 
 image::pod-rs-diff.png[Diff]
 
@@ -205,7 +206,7 @@ k apply -f replicaset.yml
 replicaset.apps/myapp created
 ```
 
-Usually we will get more than one kind of object:
+Usually, we will get more than one kind of object:
 
 ```
 k get po,svc,rs
@@ -249,7 +250,7 @@ replicaset.extensions/myapp   3         3         3       4m35s
 == Deployment
 
 The abstraction that is typically used is a Deployment.
-It contains all the replicaset provided to us and also ensures that any update we make to our pods do not cause downtime.
+It contains all the Replicaset provided to us and also ensures that any update we make to our pods does not cause downtime.
 It supports rollover updates and rollbacks.
 
 To move from a Replicaset to a Deployment we have to do a massive work:
@@ -304,8 +305,10 @@ NAME                          READY   UP-TO-DATE   AVAILABLE   AGE
 deployment.extensions/myapp   3/3     3            3           2s
 ```
 
-We came a long way but now we have all this amazing capabilities.
-But there are a couple of ways go get all this yaml generated for us.
+We came a long way but now we have all these amazing capabilities.
+
+But there are a couple of ways to get all this YAML generated for us.
+
 The easier one:
 
 ```
@@ -313,3 +316,74 @@ k create deployment myapp --image=dockerhub.com/albertoimpl/myapp-jib --dry-run 
 ```
 
 Will output almost the same we have in our `deployment.yml`
+
+== Dekorate
+
+If like me, you have YAML with your all your soul there is an alternative.
+
+Dekorate helps with generating Kubernetes manifests as easy as adding a dependency to the classpath:
+
+```
+	compile 'io.dekorate:kubernetes-spring-starter:0.9.2'
+	annotationProcessor 'io.dekorate:kubernetes-annotations:0.9.2'
+```
+
+and adding an annotation `@KubernetesApplication` to our main class.
+
+We can now update our manifest by adding annotations or by adding some more YAML:
+
+```
+dekorate:
+  kubernetes:
+    labels:
+      - app: myapp
+    ports:
+      - protocol: TCP
+        port: 8080
+        targetPort: 8080
+    serviceType: NodePort
+    group: albertoimpl
+```
+
+I would personally go with generating the YAML with a dry-run the first time and then update it manually since I found myself going back and forward trying to match what I need to what the tool generates.
+
+== Probes
+
+When our application starts to grow, having the container started does not mean that we are ready to accept traffic.
+Kubernetes provides Probes to help us with this. Probes will periodically perform an action to confirm that the application is working, but leaving it to the default can lead to terrible consequences.
+
+Kubernetes uses a Liveness Probes to know when to restart a container.
+Kubernetes uses a Readiness Probes to know when to start accepting traffic.
+A Pod is ready when all of its containers are ready.
+
+The main mistakes are:
+Having no probes, since will make the container available when it should not
+Making Liveness dependent on an external check, like other services or databases can cause a restart of all your containers when just a single external failure occurs.
+
+
+What should be set them to?
+`livenessProbe` to `actuator/info` or just create an endpoint that returns OK
+`readinessProbe` is perfect for Spring `actuator/health`
+
+There are other values that you should set, but that will depend on your application.
+
+image::deployment-probes-diff.png[Diff]
+
+Or if you are using Dekorate:
+
+```
+@KubernetesApplication(
+livenessProbe = @Probe(httpActionPath = "/actuator/info"),
+readinessProbe = @Probe(httpActionPath = "/actuator/health"))
+```
+
+If you know your application takes longer than that to start, since Kubernetes 2.16 there is a new type of probe called `startupProbe` that will help you with the warm up.
+
+```
+startupProbe:
+  httpGet:
+    path: /healthz
+    port: liveness-port
+  failureThreshold: 30
+  periodSeconds: 10
+```

@@ -19,13 +19,12 @@
 **** K8s basics
 ***** Local environment
 ****** KIND
-****** Minikube
 ***** Pod
 ***** Service
-*** ReplicaSets
-*** Deployments
-****** Dekorate
-****** kubecfg
+***** ReplicaSets
+***** Deployments
+***** Dekorate
+***** Probes
 
 *** Local development workflow
 **** Skaffold

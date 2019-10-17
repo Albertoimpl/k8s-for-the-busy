@@ -1,0 +1,14 @@
+dekorate:
+  kubernetes:
+    labels:
+      - app: myapp
+    ports:
+      - protocol: TCP
+        port: 8080
+        targetPort: 8080
+    serviceType: NodePort
+    group: albertoimpl
+    livenessProbe:
+      httpActionPath: "/actuator/info"
+    readinessProbe:
+      httpActionPath: "/actuator/info"
