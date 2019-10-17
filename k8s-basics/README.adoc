@@ -314,6 +314,10 @@ The easier one:
 ```
 k create deployment myapp --image=dockerhub.com/albertoimpl/myapp-jib --dry-run -oyaml
 ```
+and the same for our service:
+```
+k expose deployment myapp --target-port=8080 --port=8080 --dry-run -oyaml
+```
 
 Will output almost the same we have in our `deployment.yml`
 

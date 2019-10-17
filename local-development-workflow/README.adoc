@@ -1,0 +1,79 @@
+=== Local Development Workflow
+
+Now that we know how to properly create an application, containarize it and deploy it to Kubernetes it's time for us to extend it.
+If we want to iterate over our app the manual way we have to go, execute jib, then kubectl apply again and so on.
+We are going to introduce a couple of tools to help us with that.
+
+==== Skaffold
+
+Automatically detects changes, compile your application and deploys it for you.
+The tool integrates with well jib and the IntelliJ Cloud Code plugin which makes it key for a great developer experience.
+
+image::skaffold-intellij-cloud-code.png[Cloud Code]
+
+In order to use it we need to add a new file called `skaffold.yml` and move our Deployment and Service YAML files to a folder called `k8s`.
+
+```
+apiVersion: skaffold/v1beta15
+kind: Config
+build:
+  artifacts:
+    - image: albertoimpl/myapp-jib
+      jib: {}
+```
+
+With that configured we can run it from the command line or through the IDE.
+You can even debug and add a breakpoint to your code:
+
+image::skaffold-intellij-debug.png[Debug with breakpoint]
+
+=== Kustomize
+
+Now that we have the ability to iterate over our app, we are going to show how to customize it for different environments:
+Kustomize lets you customize raw, template-free YAML files for multiple purposes, leaving the original YAML untouched and usable as is.
+
+```
+touch kustomization.yaml
+kustomize edit add resource service.yaml
+kustomize edit add resource deployment.yaml
+```
+
+will generate:
+
+```
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- k8s/deployment.yaml
+- k8s/service.yaml
+```
+
+You can have profiles within Skaffold but we found that using Kustomize to represent them was a better approach that we can reuse to generate our real production deployment by using variants and overlays.
+
+A variant is the outcome, in a cluster, of applying an overlay to a base.
+
+```
+~/app-kustomize
+├── base
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   └── kustomization.yaml
+└── overlays
+    ├── development
+    │   ├── kustomization.yaml
+    │   └── replicas.yaml
+    │   └── properties.yaml
+    └── production
+        ├── kustomization.yaml
+        └── replicas.yaml
+        └── properties.yaml
+```
+
+
+```
+kustomize build overlays/development | kubectl apply -f -
+```
+
+```
+kustomize build overlays/production | kubectl apply -f -
+```
