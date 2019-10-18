@@ -1,6 +1,7 @@
 ** Kubernetes for the busy developer
 *** Why this tutorial
 *** What this tutorial is not about
+
 *** Building an image from source
 **** Basic dockerfile
 **** Security alert!
@@ -10,12 +11,14 @@
 ***** Alpine
 ***** Trade-offs
 **** Jib
+
 *** Tagging
 *** Registries
 **** DockerHub
 **** GRC/ACR/ECR
 **** Harbor
 *** Deployment
+
 **** K8s basics
 ***** Local environment
 ****** KIND
@@ -31,20 +34,18 @@
 **** Kustomize
 ***** Profiles
 
-*** Debugging
-*** Log aggregation
+**** Logs aggregation
+***** Logs from one pod
+***** Logs from all the pods
+***** Logs using EFK stack
+**** Metrics
+**** Distributed tracing
 
 *** Persistence data storage
 *** Externalised configuration and secrets
 *** Secrets management
-*** Secrets on git
 
 *** Networking
 *** Service to service communication and discovery
 *** Ingress controllers
 *** TLS Termination
-
-*** Bonus Points
-**** Observability
-**** CNAB
-**** Okteto
