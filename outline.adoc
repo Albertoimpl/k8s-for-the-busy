@@ -39,7 +39,6 @@
 ***** Logs from all the pods
 ***** Logs using EFK stack
 **** Metrics
-**** Distributed tracing
 
 *** Persistence data storage
 *** Externalised configuration and secrets

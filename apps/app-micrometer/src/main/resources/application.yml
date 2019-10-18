@@ -1,4 +1,4 @@
-server.port: 8001
+app.name: Local
 
 management:
   endpoints:
