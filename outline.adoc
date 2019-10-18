@@ -40,11 +40,12 @@
 ***** Logs using EFK stack
 **** Metrics
 
-*** Persistence data storage
-*** Externalised configuration and secrets
-*** Secrets management
-
 *** Networking
-*** Service to service communication and discovery
-*** Ingress controllers
-*** TLS Termination
+
+*** Ingress controllers // TODO
+*** TLS Termination // TODO
+
+*** Persistent data storage
+*** Externalised configuration
+*** Secrets
+

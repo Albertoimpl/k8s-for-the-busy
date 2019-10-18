@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-provider
+  labels:
+    app: myapp-provider
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp-provider
+  template:
+    metadata:
+      labels:
+        app: myapp-provider
+    spec:
+      containers:
+        - image: albertoimpl/myapp-jib:latest
+          name: myapp-provider
+          livenessProbe:
+            httpGet:
+              path: "/actuator/info"
+              port: 8080
+              scheme: "HTTP"
+            failureThreshold: 3
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            successThreshold: 1
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: "/actuator/health"
+              port: 8080
+              scheme: "HTTP"
+            failureThreshold: 3
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            successThreshold: 1
+            timeoutSeconds: 10

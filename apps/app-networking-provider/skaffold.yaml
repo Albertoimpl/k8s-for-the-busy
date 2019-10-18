@@ -1,0 +1,6 @@
+apiVersion: skaffold/v1beta15
+kind: Config
+build:
+  artifacts:
+    - image: albertoimpl/myapp-jib
+      jib: {}
