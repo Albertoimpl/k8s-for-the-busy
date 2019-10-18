@@ -52,6 +52,52 @@ You can have profiles within Skaffold but we found that using Kustomize to repre
 
 A variant is the outcome, in a cluster, of applying an overlay to a base.
 
+For that, we have to change our file structure a bit. We will have our original deployment and service, altogether with a new kustomization.yaml file:
+
+```kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - deployment.yaml
+  - service.yaml
+
+```
+
+Then, we are going to create overlays for development and for production:
+
+```kustomization.yaml
+resources:
+  - ../../base
+patchesStrategicMerge:
+  - replicas.yaml
+namePrefix: development-
+```
+
+We will decrease the number of replicas to 1 in our development environment:
+
+```replicas.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: default
+  name: myapp
+spec:
+  replicas: 1
+```
+
+And increase it to 5 in our production one:
+```replicas.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: default
+  name: myapp
+spec:
+  replicas: 5
+```
+
+This is the final structure:
+
 ```
 ~/app-kustomize
 ├── base
@@ -62,18 +108,24 @@ A variant is the outcome, in a cluster, of applying an overlay to a base.
     ├── development
     │   ├── kustomization.yaml
     │   └── replicas.yaml
-    │   └── properties.yaml
     └── production
         ├── kustomization.yaml
         └── replicas.yaml
-        └── properties.yaml
 ```
 
+With overlays we can also provide different configurations depending on the environment.
 
+For us get our development overlay:
 ```
-kustomize build overlays/development | kubectl apply -f -
+kustomize build overlays/development
 ```
 
+And for production just:
+```
+kustomize build overlays/production
+```
+
+We can commit and version those files or just apply them as part of the deployment process:
 ```
 kustomize build overlays/production | kubectl apply -f -
 ```
