@@ -112,6 +112,8 @@ Now that we have a tagged image in a registry, we are ready to deploy it into ku
 
 === Networking
 
+==== Service Discovery
+
 We have now a HA, scalable, easy to debug, monitor and deploy hello world application but reality is that this is far still from a real application.
 Usually applications will talk to other external application or services.
 
@@ -196,3 +198,67 @@ We can see how just specifying the service name `service-myapp-provider` we can 
 curl localhost:8080/hello
 Welcome: Laura,Bella,Olga
 ```
+
+If the service was in a different namespace we could just reference it by using its Fully Qualified Domain Name: `other-service.other-namespace.svc.cluster.local`
+
+==== Ingress
+
+So far, we have been locally port-forwarding everything or accessing to our services through the IP assigned to us from it's `NodePort`
+
+```
+ k get svc
+NAME                     TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)          AGE
+kubernetes               ClusterIP   10.96.0.1      <none>        443/TCP          3d1h
+service-myapp-provider   NodePort    10.107.90.53   <none>        8080:31230/TCP   2d21h
+```
+
+However, this is not a good approach in order to be consumed from the outside world.
+In order to make this nicer for the external world we are going to create an Ingress.
+Ingress exposes routes from outside the cluster to services within the cluster.
+
+
+Let's make our provider app available to the world:
+
+```ingress.yaml
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: provider-ingress
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+    - host: provider.test.app.com
+    - http:
+        paths:
+          - path: /
+            backend:
+              serviceName: service-myapp-provider
+              servicePort: 8080
+```
+
+Ingress supports path and host based routing with a standard entry-point to multiple services.
+
+```
+k apply -f networking/ingress.yaml
+ingress.networking.k8s.io/provider-ingress created
+```
+
+```
+k get svc,ingress
+NAME                             TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)          AGE
+service/kubernetes               ClusterIP   10.96.0.1      <none>        443/TCP          3d1h
+service/service-myapp-provider   NodePort    10.107.90.53   <none>        8080:31230/TCP   2d21h
+
+NAME                                  HOSTS                 ADDRESS          PORTS   AGE
+ingress.extensions/provider-ingress   provider.test.app.com 107.178.254.228  80      75s
+```
+
+```
+curl 107.178.254.228/customers
+["Laura","Bella","Olga"]
+```
+
+Now we have a much better way to process the ingress traffic to our cluster.
+Note that to test it we need a real development cluster since KIND does not enable support for this at the moment.
+

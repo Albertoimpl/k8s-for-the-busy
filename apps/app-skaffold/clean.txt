@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: myapp-provider
+    app.kubernetes.io/managed-by: skaffold-v0.39.0
+    ide: idea
+    ideVersion: 2019.2.2.0.0
+    ijPluginVersion: unknown
+    pod-template-hash: 6bd7bcd995
+    skaffold.dev/builder: local
+    skaffold.dev/cleanup: "true"
+    skaffold.dev/deployer: kubectl
+    skaffold.dev/docker-api-version: "1.40"
+    skaffold.dev/run-id: 71c6635e-3045-41aa-84d0-11cc919c99ec
+    skaffold.dev/tag-policy: git-commit
+    skaffold.dev/tail: "true"
+  name: myapp-provider-6bd7bcd995-j5l6w
+  namespace: default
+spec:
+  containers:
+  - image: albertoimpl/myapp-jib:fe75a3253284b903aa6aebd903ac3063201e970b6a0f545406bf4b97ba96898d
+    livenessProbe:
+      httpGet:
+        path: /actuator/info
+        port: 8080
+      initialDelaySeconds: 5
+      periodSeconds: 30
+      timeoutSeconds: 10
+    name: myapp-provider
+    readinessProbe:
+      httpGet:
+        path: /actuator/health
+        port: 8080
+      initialDelaySeconds: 15
+      periodSeconds: 30
+      timeoutSeconds: 10
+  priority: 0
+  serviceAccountName: default
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+

@@ -41,11 +41,11 @@
 **** Metrics
 
 *** Networking
-
-*** Ingress controllers // TODO
-*** TLS Termination // TODO
+**** Service Discovery
+**** Ingress
 
 *** Persistent data storage
-*** Externalised configuration
-*** Secrets
+**** Volumes
+**** Externalised configuration
+**** Secrets
 

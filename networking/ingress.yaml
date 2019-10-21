@@ -1,0 +1,15 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: provider-ingress
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+    - host: provider.test.app.com
+    - http:
+        paths:
+          - path: /
+            backend:
+              serviceName: service-myapp-provider
+              servicePort: 8080
