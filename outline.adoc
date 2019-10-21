@@ -44,8 +44,7 @@
 **** Service Discovery
 **** Ingress
 
-*** Persistent data storage
-**** Volumes
-**** Externalised configuration
+*** Persistent Volumes
+*** Externalised Configuration
 **** Secrets
 
