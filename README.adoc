@@ -449,4 +449,49 @@ k exec myapp-provider-67876959-7srbm -it sh
 greeter.message=Hello!!
 ```
 
+==== Secrets
+
+As we saw before, Kubernetes does not shine when it comes to Secrets storage.
+It provides a new kind of object called Secret that let you define them base64 encoded.
+
+```
+echo -n 'supersecret' | base64
+c3VwZXJzZWNyZXQ=
+
+```
+
+We can add that value to our Secret:
+
+```
+apiVersion: v1
+kind: Secret
+metadata:
+  name: database-secrets
+type: Opaque
+data:
+  DB_PASSWORD: "c3VwZXJzZWNyZXQ="
+```
+
+The volume configuration is similar to the previous volume one.
+
+```
+      volumes:
+        - name: database-secrets
+          secret:
+            secretName: database-secrets
+```
+
+But, our database password is still sitting there in plain text.
+
+```
+k exec myapp-provider-8468d89dfd-89pt6 -it sh
+# cat config/DB_PASSWORD
+supersecret
+```
+
 We can see the values in the environment or sitting in the disk and that can be problematic for some organizations.
+
+There are a few solutions:
+Encrypting the data on rest: https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/
+Using Sealed Secrets that allow us to encrypt everything on git: https://github.com/bitnami-labs/sealed-secrets
+Using Vault to store them: https://github.com/coreos/vault-operator
