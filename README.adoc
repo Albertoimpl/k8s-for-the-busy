@@ -263,11 +263,13 @@ Note that to test it we need a real development cluster since KIND does not enab
 
 === Persistent Volumes
 
-Some application and services will require persistent data. Pod are ephemeral, they will likely die and the data will be removed.
+Some application and services will require persistent data.
+Pod are ephemeral, they will likely die and the data will be removed.
 For that, K8s has an amazing feature called persistent volume, which is kind of a folder that won't get lost on a restart.
 
 Typically applications should not need to persist anything on disk not to violate 12 factor app principles.
 We are going to use mongo as an example where all the data is kept in the directory `/data/db`
+
 ```
 volumeMounts:
     - name: mongo-persistent-volume
@@ -275,6 +277,7 @@ volumeMounts:
 ```
 
 We are going to specify where do we want the data to be and to create the directory if it does not exist:
+
 ```
   volumes:
   - name: mongo-persistent-volume
@@ -311,3 +314,139 @@ So, instead of manually creating the volume with our IaaS specific configuration
 However, there is another way to create them and it is by having Dynamic Volumes.
 We can have a default one so that we don't have to have to create them beforehand.
 Careful since you can start requesting a lot of disk if you are not cleaning them and it will increase your IaaS cost.
+
+=== Externalised Configuration
+
+On the previous examples we were just hardcoding our properties in an application.properties file.
+A real world application contain different type of configuration: hard, that will never change and are required to be bundled with our app and soft, that may change or that can be changed on runtime, such as A/B tests.
+We will see how to pass configuration and secrets to our application.
+
+==== Config Maps
+
+Config Maps are volumes we mount into our containers.
+
+We can create them using the CLI from literals:
+
+```
+k create configmap name --from-literal key=value
+```
+
+from config files:
+
+```
+k create configmap name --from-file=myconfig.properties
+```
+
+or as usual with YAML:
+
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-configuration
+  namespace: default
+data:
+  MYSQL_DATABASE: "customers"
+  MYSQL_HOSTNAME: "database.service"
+  MYSQL_PASSWORD: "secretpassword"
+  MYSQL_PORT: "3701"
+  MYSQL_USER: "customers"
+```
+
+If we apply our new configuration:
+
+```
+k apply -f configurations/database-configmap.yaml
+configmap/database-configuration created
+```
+
+We can add our configuration to our application environment:
+
+```
+diff --git a/apps/app-networking-provider/k8s/deployment.yaml b/apps/app-networking-provider/k8s/deployment.yaml
+index 0120c84..9c88a4c 100644
+--- a/apps/app-networking-provider/k8s/deployment.yaml
++++ b/apps/app-networking-provider/k8s/deployment.yaml
+@@ -17,6 +17,9 @@ spec:
+       containers:
+         - image: albertoimpl/myapp-jib:latest
+           name: myapp-provider
++          envFrom:
++            - configMapRef:
++                name: database-configuration
+           livenessProbe:
+             httpGet:
+               path: "/actuator/info"
+```
+
+Although, because the current image we are using we can't ssh inside.
+In Kubernetes 2.16 a new kind of container was introduced called ephemeral container, so we can do run `kubectl debug` into our container.
+At the moment we don't have a way to do so locally and just for debugging purposes we are going to change the image of our app so that we can ssh in:
+
+```
+k exec myapp-provider-fcbf996dc-mtrvb -it sh
+# echo $MYSQL_DATABASE
+customers
+# echo $MYSQL_PASSWORD
+secretpassword
+```
+
+There is another way to pass the configuration through.
+We can mount it as a volume so it is a file on the disk.
+For that, we are going to create a new Config Map with an application.properties
+
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: volume-configuration
+  namespace: default
+data:
+  application.properties: "greeter.message=Hello!!"
+```
+
+For that we have to specify where do we want to mount it: `mountPath: /config`
+
+```
+19a20,22
++           volumeMounts:
++             - name: volume-configuration
++               mountPath: /config
+39a43,49
++       volumes:
++         - name: volume-configuration
++           configMap:
++             name: volume-configuration
++             items:
++             - key: application.properties
++               path: application.properties
+```
+
+After updating our application to read that value:
+
+```
+	@Value("${greeter.message}")
+	private String value;
+
+	@RequestMapping("/message")
+	public String message() {
+		return value;
+	}
+```
+
+We can curl and read from it:
+
+```
+curl localhost:8080/message
+Hello!!
+```
+
+If we ssh inside the container we can see the new file there:
+
+```
+k exec myapp-provider-67876959-7srbm -it sh
+# cat config/application.properties
+greeter.message=Hello!!
+```
+
+We can see the values in the environment or sitting in the disk and that can be problematic for some organizations.

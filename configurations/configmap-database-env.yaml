@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-configuration
+  namespace: default
+data:
+  MYSQL_DATABASE: "customers"
+  MYSQL_HOSTNAME: "database.service"
+  MYSQL_PASSWORD: "secretpassword"
+  MYSQL_PORT: "3701"
+  MYSQL_USER: "customers"

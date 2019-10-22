@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: volume-configuration
+  namespace: default
+data:
+  application.properties: "greeter.message=Hello!!"
