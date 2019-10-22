@@ -31,12 +31,15 @@ public class Application {
 
 }
 ```
+
 and convert it into an executable JAR file:
+
 ```
 ./gradlew clean assemble
 ```
 
 This will give us our hello world app jar file in
+
 ```
 /build/libs/myapp-0.0.1-SNAPSHOT.jar
 ```
@@ -71,6 +74,7 @@ The above command will copy _everything_, including files like `.env` files cont
 Please, use a `.dockeringore` which is like a `.gitignore` but for Docker images.
 
 With that in mind, let's build our first image:
+
 ```
 → docker build -t albertoimpl/myapp . -f Dockerfile1
 ```
@@ -135,7 +139,8 @@ begin:
 
 Yes, you read right, because he can't never be boring.
 
-Moving forward. Let's go a bit deeper to see what we just did.
+Moving forward.
+Let's go a bit deeper to see what we just did.
 
 ```
 → docker images
@@ -149,7 +154,8 @@ That means that every time we do a change in our image we will have to upload an
 
 == Layers
 
-A Docker image consists of a series of read-only layers each of which represents a Dockerfile instruction. The layers are stacked and each one is a delta of the changes from the previous layer.
+A Docker image consists of a series of read-only layers each of which represents a Dockerfile instruction.
+The layers are stacked and each one is a delta of the changes from the previous layer.
 
 Images that share layers and are smaller in size are quicker to transfer and deploy.
 
@@ -237,6 +243,7 @@ EXPOSE 8080
 ```
 
 Still
+
 ```
 REPOSITORY          TAG                 IMAGE ID            CREATED              SIZE
 albertoimpl/myapp   latest              349db4730680        About a minute ago   505MB
@@ -244,8 +251,8 @@ albertoimpl/myapp   latest              349db4730680        About a minute ago  
 openjdk             8                   e8d00769c8a8        6 days ago           488MB
 ```
 
-
 If we update the text
+
 ```
 	@RequestMapping("/")
 	public String home() {
@@ -380,6 +387,7 @@ gcr.io/distroless/java   8                   2ee039e7a421        49 years ago   
 Our image went down to 142MB
 
 === Alpine
+
 We can make it even smaller by using alpine.
 Most linux distribution are based on glibc not muslc, they both implement the same interface but they have different goals, one is faster and muslc uses less space and is written with security in mind.
 That means that it may lead to unexpected behaviour because the standard C library is different.
@@ -407,8 +415,7 @@ We have now a 122MB image.
 
 We have been pursuing smaller images but what do we really want to achieve?
 
-With alpine we will have smaller images
-With distroless we will have a smaller attack surface area
+With alpine we will have smaller images With distroless we will have a smaller attack surface area
 
 That is a trade-off you'll have to make
 
@@ -464,3 +471,88 @@ myapp-jib                            0.0.1-SNAPSHOT      272b59084a4c        49 
 ```
 
 It can be configured to use different base images and we can configure where do we want it published.
+
+== Tagging
+
+We have been tagging our image using the default tag `latest`.
+But the same way you would never go to production with `SNAPSHOT` in your dependencies, you will never go with `latest` as your tag.
+
+There are different strategies, the one I like the most is the timestamp one:
+
+```
+jib.to.image = 'grc.io/albertoimpl/myapp:' + System.nanoTime()
+```
+
+Or on CI you can use the git hash:
+
+```
+./gradlew jib --image=grc.io/albertoimpl/myapp:{{github.sha}}
+```
+
+=== Registries
+
+In order for our image to be downloaded, we have to upload it somewhere.
+Registries are the place where we will upload our images.
+
+The ones we took a look at are:
+
+==== DockerHub
+
+Is the original and most used registry, free for public, paid for private.
+They have an on prem offering.
+
+==== GRC/ACR/ECR
+
+Are the biggest cloud providers registries, if you are using their hosted kubernetes container services, you should use their registries.
+
+==== Harbor
+
+Open Source registry started by VMWare, now part of the CNCF. It enables users to have their on prem registry.
+
+=== Deployment
+
+We can get jib to push the image to the registry:
+
+```
+ ./gradlew jib --image=albertoimpl/myapp-jib
+To honour the JVM settings for this build a new JVM will be forked. Please consider using the daemon: https://docs.gradle.org/5.6.2/userguide/gradle_daemon.html.
+Daemon will be stopped at the end of the build stopping after processing
+
+> Task :jib
+
+Containerizing application to albertoimpl/myapp-jib...
+The credential helper (docker-credential-desktop) has nothing for server URL: registry-1.docker.io
+
+Got output:
+
+credentials not found in native keychain
+
+The credential helper (docker-credential-desktop) has nothing for server URL: registry.hub.docker.com
+
+Got output:
+
+credentials not found in native keychain
+
+
+Container entrypoint set to [java, -cp, /app/resources:/app/classes:/app/libs/*, com.albertoimpl.devoxxbe.containers.ContainersApplication]
+
+Built and pushed image as albertoimpl/myapp-jib
+Executing tasks:
+[==============================] 100.0% complete
+
+
+BUILD SUCCESSFUL in 34s
+3 actionable tasks: 3 executed
+```
+
+or by adding the registry to our `build.gradle` file:
+
+```
+jib {
+	to {
+		image = 'albertoimpl/myapp-jib'
+	}
+}
+```
+
+Now that we have a tagged image in a registry, we are ready to deploy it into kubernetes.

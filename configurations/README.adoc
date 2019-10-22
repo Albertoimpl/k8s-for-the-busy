@@ -1,0 +1,180 @@
+=== Externalised Configuration
+
+On the previous examples we were just hardcoding our properties in an application.properties file.
+A real world application contain different type of configuration: hard, that will never change and are required to be bundled with our app and soft, that may change or that can be changed on runtime, such as A/B tests.
+We will see how to pass configuration and secrets to our application.
+
+==== Config Maps
+
+Config Maps are volumes we mount into our containers.
+
+We can create them using the CLI from literals:
+
+```
+k create configmap name --from-literal key=value
+```
+
+from config files:
+
+```
+k create configmap name --from-file=myconfig.properties
+```
+
+or as usual with YAML:
+
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-configuration
+  namespace: default
+data:
+  MYSQL_DATABASE: "customers"
+  MYSQL_HOSTNAME: "database.service"
+  MYSQL_PASSWORD: "secretpassword"
+  MYSQL_PORT: "3701"
+  MYSQL_USER: "customers"
+```
+
+If we apply our new configuration:
+
+```
+k apply -f configurations/database-configmap.yaml
+configmap/database-configuration created
+```
+
+We can add our configuration to our application environment:
+
+```
+diff --git a/apps/app-networking-provider/k8s/deployment.yaml b/apps/app-networking-provider/k8s/deployment.yaml
+index 0120c84..9c88a4c 100644
+--- a/apps/app-networking-provider/k8s/deployment.yaml
++++ b/apps/app-networking-provider/k8s/deployment.yaml
+@@ -17,6 +17,9 @@ spec:
+       containers:
+         - image: albertoimpl/myapp-jib:latest
+           name: myapp-provider
++          envFrom:
++            - configMapRef:
++                name: database-configuration
+           livenessProbe:
+             httpGet:
+               path: "/actuator/info"
+```
+
+Although, because the current image we are using we can't ssh inside.
+In Kubernetes 2.16 a new kind of container was introduced called ephemeral container, so we can do run `kubectl debug` into our container.
+At the moment we don't have a way to do so locally and just for debugging purposes we are going to change the image of our app so that we can ssh in:
+
+```
+k exec myapp-provider-fcbf996dc-mtrvb -it sh
+# echo $MYSQL_DATABASE
+customers
+# echo $MYSQL_PASSWORD
+secretpassword
+```
+
+There is another way to pass the configuration through.
+We can mount it as a volume so it is a file on the disk.
+For that, we are going to create a new Config Map with an application.properties
+
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: volume-configuration
+  namespace: default
+data:
+  application.properties: "greeter.message=Hello!!"
+```
+
+For that we have to specify where do we want to mount it: `mountPath: /config`
+
+```
+19a20,22
++           volumeMounts:
++             - name: volume-configuration
++               mountPath: /config
+39a43,49
++       volumes:
++         - name: volume-configuration
++           configMap:
++             name: volume-configuration
++             items:
++             - key: application.properties
++               path: application.properties
+```
+
+After updating our application to read that value:
+
+```
+	@Value("${greeter.message}")
+	private String value;
+
+	@RequestMapping("/message")
+	public String message() {
+		return value;
+	}
+```
+
+We can curl and read from it:
+
+```
+curl localhost:8080/message
+Hello!!
+```
+
+If we ssh inside the container we can see the new file there:
+
+```
+k exec myapp-provider-67876959-7srbm -it sh
+# cat config/application.properties
+greeter.message=Hello!!
+```
+
+==== Secrets
+
+As we saw before, Kubernetes does not shine when it comes to Secrets storage.
+It provides a new kind of object called Secret that let you define them base64 encoded.
+
+```
+echo -n 'supersecret' | base64
+c3VwZXJzZWNyZXQ=
+
+```
+
+We can add that value to our Secret:
+
+```
+apiVersion: v1
+kind: Secret
+metadata:
+  name: database-secrets
+type: Opaque
+data:
+  DB_PASSWORD: "c3VwZXJzZWNyZXQ="
+```
+
+The volume configuration is similar to the previous volume one.
+
+```
+      volumes:
+        - name: database-secrets
+          secret:
+            secretName: database-secrets
+```
+
+But, our database password is still sitting there in plain text.
+
+```
+k exec myapp-provider-8468d89dfd-89pt6 -it sh
+# cat config/DB_PASSWORD
+supersecret
+```
+
+We can see the values in the environment or sitting in the disk and that can be problematic for some organizations.
+
+There are a few solutions:
+Encrypting the data on rest: https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/
+Using Sealed Secrets that allow us to encrypt everything on git: https://github.com/bitnami-labs/sealed-secrets
+Using Vault to store them: https://github.com/coreos/vault-operator
