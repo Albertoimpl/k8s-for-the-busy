@@ -1,32 +1,33 @@
-== Kubernetes for the busy developer
+= Kubernetes for the busy developer
+:toc:
 
 The Kubernetes hype train has reached full velocity and many organisations are now adopting the technology.
 The Kubernetes ecosystem can be very operator focused and it can be a challenge for developers to distill the information that is relevant for their job.
 There are a large number of available tools aimed at solving a broad set of problems but it can be daunting choosing which to invest in.
 This tutorial aims to provide developers with a thorough grounding on Kubernetes concepts, suggest best practices and get hands-on with some of the essential tooling.
 
-=== Why this tutorial
+== Why this tutorial
 
 After working with a PaaS where the developer has just one single command to deploy the applications: `cf push`, `heroku deploy` or `gcloud app deploy`.
 They abstract from a huge amount of complexity.
 The experience coming to kubernetes is far from that.
 There are many tools for each phase of the lifecycle increasing the learning curve.
 
-=== What this tutorial is not about
+== What this tutorial is not about
 
 * How to operate or deploy a k8s cluster.
 * K8s architecture will be treated as a black box and only the necessary will be described.
 
-=== <<containerizing-java/README.adoc#,Building an image from source>>
+== <<containerizing-java/README.adoc#,Building an image from source>>
 
-=== <<k8s-basics/README.adoc#,K8s basics>>
+== <<k8s-basics/README.adoc#,K8s basics>>
 
-=== <<local-development-workflow/README.adoc#,Local Development Workflow>>
+== <<local-development-workflow/README.adoc#,Local Development Workflow>>
 
-=== <<observability/README.adoc#,Observability>>
+== <<observability/README.adoc#,Observability>>
 
-=== <<networking/README.adoc#,Networking>>
+== <<networking/README.adoc#,Networking>>
 
-=== <<persistence/README.adoc#,Persistent Volumes>>
+== <<persistence/README.adoc#,Persistent Volumes>>
 
-=== <<configurations/README.adoc#,Externalised Configuration>>
+== <<configurations/README.adoc#,Externalised Configuration>>
