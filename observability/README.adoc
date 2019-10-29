@@ -84,7 +84,13 @@ myapp-55bbf4947c-4l6lq myapp-55bbf4947c-57dcn myapp-jib
 This is a great tool but in a real system you will most likely have loads of logs from different systems and we need better tooling.
 
 If you are on GKE you have Stackdriver already there for you.
-If you aren't the most common solution has been the EFK or Elastic stack now.
+If you aren't the most common solution has been the EFK stack .
+
+Stands for the name of three projects: Elasticsearch, Logstash, and Kibana.
+Elasticsearch is a search and analytics engine.
+Logstash is a server‑side data processing pipeline and then sends it to a "stash" like Elasticsearch.
+Kibana lets users visualize data with charts and graphs in Elasticsearch.
+
 Inside the official kubernetes repo there are all the files you need to install it: https://github.com/kubernetes/kubernetes/tree/master/cluster/addons/fluentd-elasticsearch
 
 Be aware that the logs files will disappear if the container restarts, since this is maintained for testing purposes not for production.

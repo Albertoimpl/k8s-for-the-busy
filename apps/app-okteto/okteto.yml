@@ -1,0 +1,11 @@
+name: app-okteto
+image: okteto/gradle:latest
+command:
+  - bash
+environment:
+  - JAVA_OPTS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8088
+volumes:
+  - /home/gradle/.gradle
+forward:
+  - 8080:8080
+  - 8088:8088

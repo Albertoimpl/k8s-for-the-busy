@@ -423,7 +423,7 @@ That is a trade-off you'll have to make
 
 Doing all that for every single image is a bit of a pain, plus new versions of Docker will contain better improvements and new good practices will appear.
 
-A tool that groups all the good practices we mention before is `Jib`.
+A tool that groups all the good practices we mentioned before is `Jib`.
 
 With Jib no Dockerfile needs to be created and Jib does not need a docker daemon.
 

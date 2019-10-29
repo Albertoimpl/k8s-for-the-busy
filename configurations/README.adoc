@@ -11,13 +11,13 @@ Config Maps are volumes we mount into our containers.
 We can create them using the CLI from literals:
 
 ```
-k create configmap name --from-literal key=value
+k create configmap database-configuration --from-literal key=value
 ```
 
 from config files:
 
 ```
-k create configmap name --from-file=myconfig.properties
+k create configmap database-configuration --from-file=myconfig.properties
 ```
 
 or as usual with YAML:

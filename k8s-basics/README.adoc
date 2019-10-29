@@ -15,8 +15,8 @@ alias k='kubectl'
 Kubernetes IN Docker
 
 KIND is a tool for running local Kubernetes clusters using Docker containers as nodes.
-Easier to start and delete. Takes about 20 seconds to spin a new cluster.
-
+Easier to start and delete.
+Takes about 20 seconds to spin a new cluster.
 
 ```
 kind create cluster
@@ -48,7 +48,8 @@ If you can use a real development cluster hosted in the cloud, just use it.
 
 == Pod
 
-Smallest deployable unit is a pod. Literally, a Pod is a group of whales.
+Smallest deployable unit is a pod.
+Literally, a Pod is a group of whales.
 
 Typically, we will have a one to one app to pod.
 If you have a frontend, a backend and a database, you don't want to scale them the same way so they will very likely live in different pods.
@@ -74,6 +75,21 @@ spec:
 
 Congratulations, you are one step closer to becoming a YAML engineer!
 
+For validating we can try a dry run:
+
+```
+ k apply -f pod.yaml --dry-run
+pod/myapp created (dry run)
+```
+
+However, this just does client-side validation.
+
+Since version 2.16 there is a beta command to validate that in the server
+
+```
+k apply -f pod.yaml --server-dry-run
+```
+
 ```
 k apply -f pod.yml
 pod/myapp created
@@ -92,6 +108,7 @@ myapp   1/1     Running   0          1m
 ```
 
 We can get more information about the whole process with describe
+
 ```
 k describe pod myapp
 
@@ -110,20 +127,18 @@ IP:                 10.244.0.4
 
 But if we try to curl, it will timeout and it is because by default our pods can't be accessed outside from the outside world.
 
-Kubernetes Pods are mortal. They are born and when they die, they are not resurrected.
-
 == Service
 
 For us to access our pod, we need to create a service.
 A service is an abstraction which defines a set of Pods and a policy to access them
 
 The main types are:
-`ClusterIP`: Exposes only inside the cluster. This is the default ServiceType.
+`ClusterIP`: Exposes only inside the cluster.
+This is the default ServiceType.
 
 `NodePort`: Exposes a port through the node to the world.
 
 `LoadBalancer`: Exposes the Service externally using a cloud provider’s load balancer.
-
 
 Remember that we had that label in our pod definition?
 This is how binding works in k8s, this selector is going to select all pods where the key matches the value.
@@ -222,6 +237,7 @@ service/service-myapp-jib   NodePort    10.111.36.24   <none>        8080:31106/
 NAME                          DESIRED   CURRENT   READY   AGE
 replicaset.extensions/myapp   3         3         3       43s
 ```
+
 We saw that we have the two missing pods and the old one we created before.
 Let's see what happens if we delete it:
 
@@ -314,7 +330,9 @@ The easier one:
 ```
 k create deployment myapp --image=dockerhub.com/albertoimpl/myapp-jib --dry-run -oyaml
 ```
+
 and the same for our service:
+
 ```
 k expose deployment myapp --target-port=8080 --port=8080 --dry-run -oyaml
 ```
@@ -354,16 +372,15 @@ I would personally go with generating the YAML with a dry-run the first time and
 == Probes
 
 When our application starts to grow, having the container started does not mean that we are ready to accept traffic.
-Kubernetes provides Probes to help us with this. Probes will periodically perform an action to confirm that the application is working, but leaving it to the default can lead to terrible consequences.
+Kubernetes provides Probes to help us with this.
+Probes will periodically perform an action to confirm that the application is working, but leaving it to the default can lead to terrible consequences.
 
 Kubernetes uses a Liveness Probes to know when to restart a container.
 Kubernetes uses a Readiness Probes to know when to start accepting traffic.
 A Pod is ready when all of its containers are ready.
 
 The main mistakes are:
-Having no probes, since will make the container available when it should not
-Making Liveness dependent on an external check, like other services or databases can cause a restart of all your containers when just a single external failure occurs.
-
+Having no probes, since will make the container available when it should not Making Liveness dependent on an external check, like other services or databases can cause a restart of all your containers when just a single external failure occurs.
 
 What should be set them to?
 `livenessProbe` to `actuator/info` or just create an endpoint that returns OK
