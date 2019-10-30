@@ -31,3 +31,5 @@ There are many tools for each phase of the lifecycle increasing the learning cur
 == <<persistence/README.adoc#,Persistent Volumes>>
 
 == <<configurations/README.adoc#,Externalised Configuration>>
+
+== <<visualization/README.adoc#,Visualization>>

@@ -398,7 +398,7 @@ livenessProbe = @Probe(httpActionPath = "/actuator/info"),
 readinessProbe = @Probe(httpActionPath = "/actuator/health"))
 ```
 
-If you know your application takes longer than that to start, since Kubernetes 2.16 there is a new type of probe called `startupProbe` that will help you with the warm up.
+If you know your application takes longer than that to start, since Kubernetes 1.16 there is a new type of probe in alpha called `startupProbe` that will help you with the warm up.
 
 ```
 startupProbe:
