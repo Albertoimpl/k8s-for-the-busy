@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 @SpringBootApplication
 @KubernetesApplication(
-//		livenessProbe = @Probe(httpActionPath = "/actuator/info"),
-//		readinessProbe = @Probe(httpActionPath = "/actuator/health")
+		livenessProbe = @Probe(httpActionPath = "/actuator/info"),
+		readinessProbe = @Probe(httpActionPath = "/actuator/health")
 )
 public class ContainersApplication {
 
