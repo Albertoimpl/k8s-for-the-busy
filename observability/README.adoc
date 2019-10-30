@@ -287,12 +287,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: "*"
-  endpoint:
-    metrics:
-      enabled: true
-    prometheus:
-      enabled: true
+        include: "prometheus,info,health"
 ```
 
 After this, our app will be exposing prometheus metrics in a new actuator endpoint:

@@ -4,9 +4,4 @@ management:
   endpoints:
     web:
       exposure:
-        include: "*"
-  endpoint:
-    metrics:
-      enabled: true
-    prometheus:
-      enabled: true
+        include: "prometheus,info,health"
