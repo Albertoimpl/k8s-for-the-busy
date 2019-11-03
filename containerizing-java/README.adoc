@@ -174,7 +174,7 @@ To do this in one step in the docker build, we need to unpack the jar first.
 ```
 → mkdir target
 → cd target
-→ jar -xf ../app/build/libs/myapp-0.0.1-SNAPSHOT.jar
+→ jar -xf ../build/libs/myapp-0.0.1-SNAPSHOT.jar
 → cd ..
 → docker build -t albertoimpl/myapp target -f Dockerfile2
 ```
@@ -197,12 +197,14 @@ There are now three layers, with all the application resources in the later two 
 If the application dependencies don’t change, then the first `/lib` layer will not change making our development process much faster.
 
 ```
-REPOSITORY          TAG                 IMAGE ID            CREATED              SIZE
-albertoimpl/myapp   latest              2d8970f0c459        About a minute ago   505MB
-<none>              <none>              1b4b0082f772        About a minute ago   505MB
-<none>              <none>              c774340e0e17        About a minute ago   505MB
-<none>              <none>              c15fb9f28a72        About a minute ago   505MB
-openjdk             8                   e8d00769c8a8        6 days ago           488MB
+→ docker history albertoimpl/myapp
+IMAGE               CREATED             CREATED BY                                      SIZE
+b0663ff6b45d        31 seconds ago      /bin/sh -c #(nop)  EXPOSE 8080                  0B
+3786b90f8280        31 seconds ago      /bin/sh -c #(nop)  ENTRYPOINT ["java" "-cp" …   0B
+3e6da2768e29        31 seconds ago      /bin/sh -c #(nop) COPY dir:38efc374c2fceb72b…   1.05kB
+562b2fee53d2        32 seconds ago      /bin/sh -c #(nop) COPY dir:e3df4502282198578…   262B
+a5513f0b84bb        32 seconds ago      /bin/sh -c #(nop) COPY dir:c0c3b7e91e9ce0b4e…   16.7MB
+57c2c2d2643d        2 weeks ago         /bin/sh -c set -eux;   dpkgArch="$(dpkg --pr…   205MB
 ```
 
 == multi-stage builds
@@ -379,8 +381,6 @@ docker build -t albertoimpl/myapp app -f Dockerfile5
  → docker images
 REPOSITORY               TAG                 IMAGE ID            CREATED             SIZE
 albertoimpl/myapp        latest              6d69e5b15226        4 seconds ago       142MB
-openjdk                  8                   e8d00769c8a8        6 days ago          488MB
-openjdk                  8-alpine            a3562aa0b991        4 months ago        105MB
 gcr.io/distroless/java   8                   2ee039e7a421        49 years ago        125MB
 ```
 
@@ -389,6 +389,7 @@ Our image went down to 142MB
 === Alpine
 
 We can make it even smaller by using alpine.
+Note that we changed from openjdk which are images build by the Debian team to adopt openjdk which is the recommended way to consume then.
 Most linux distribution are based on glibc not muslc, they both implement the same interface but they have different goals, one is faster and muslc uses less space and is written with security in mind.
 That means that it may lead to unexpected behaviour because the standard C library is different.
 
