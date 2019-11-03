@@ -46,6 +46,24 @@ To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
 
 If you can use a real development cluster hosted in the cloud, just use it.
 
+== Namespace
+
+Namespaces provide a scope for names and it's a way to divide cluster resources.
+
+Namespaces are intended for use in environments with many users spread across multiple teams.
+When starting, you should not need to create or think about namespaces at all.
+Start using them when you need the isolation they provide.
+We are going to be using the `default` namespace along this presentation.
+
+```
+k get namespaces
+NAME              STATUS   AGE
+default           Active   56s
+kube-node-lease   Active   60s
+kube-public       Active   60s
+kube-system       Active   60s
+```
+
 == Pod
 
 Smallest deployable unit is a pod.
