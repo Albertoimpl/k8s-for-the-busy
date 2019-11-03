@@ -109,9 +109,11 @@ This is the final structure:
 └── overlays
     ├── development
     │   ├── kustomization.yaml
+    │   ├── profiles.yaml
     │   └── replicas.yaml
     └── production
         ├── kustomization.yaml
+        ├── profiles.yaml
         └── replicas.yaml
 ```
 

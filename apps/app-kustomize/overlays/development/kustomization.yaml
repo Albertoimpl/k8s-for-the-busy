@@ -2,4 +2,5 @@ resources:
   - ../../base
 patchesStrategicMerge:
   - replicas.yaml
+  - profiles.yaml
 namePrefix: development-
