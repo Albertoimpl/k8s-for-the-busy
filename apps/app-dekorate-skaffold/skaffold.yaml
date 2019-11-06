@@ -1,0 +1,13 @@
+apiVersion: skaffold/v1beta15
+kind: Config
+build:
+  artifacts:
+    - image: albertoimpl/myapp-dekorate-skaffold
+      jib:
+        args:
+          - assemble
+deploy:
+  kubectl:
+    manifests:
+      - build/classes/java/main/META-INF/dekorate/kubernetes.yml
+
