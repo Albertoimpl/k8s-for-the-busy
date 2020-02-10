@@ -473,7 +473,7 @@ myapp-jib                            0.0.1-SNAPSHOT      272b59084a4c        49 
 
 It can be configured to use different base images and we can configure where do we want it published.
 
-== Tagging
+== Tags
 
 We have been tagging our image using the default tag `latest`.
 But the same way you would never go to production with `SNAPSHOT` in your dependencies, you will never go with `latest` as your tag.
@@ -489,6 +489,8 @@ Or on CI you can use the git hash:
 ```
 ./gradlew jib --image=grc.io/albertoimpl/myapp:{{github.sha}}
 ```
+
+The same goes for floating tags
 
 === Registries
 
@@ -508,7 +510,7 @@ Are the biggest cloud providers registries, if you are using their hosted kubern
 
 ==== Harbor
 
-Open Source registry started by VMWare, now part of the CNCF. It enables users to have their on prem registry.
+Open Source registry started by VMWare, now part of the CNCF. It enables users to have their on prem registry and it has a vulnerability scan built in.
 
 === Deployment
 

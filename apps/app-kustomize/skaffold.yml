@@ -1,9 +1,21 @@
-apiVersion: skaffold/v1beta15
+apiVersion: skaffold/v2alpha2
 kind: Config
+metadata:
+  name: myapp
 build:
   artifacts:
-    - image: albertoimpl/myapp-jib
+    - image: albertoimpl/myapp
       jib: {}
 deploy:
   kustomize:
-    path: base/
+    path: k8s/base
+
+profiles:
+  - name: development
+    deploy:
+      kustomize:
+        path: k8s/overlays/development
+  - name: production
+    deploy:
+      kustomize:
+        path: k8s/overlays/production
