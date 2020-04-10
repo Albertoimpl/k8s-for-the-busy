@@ -11,7 +11,7 @@ sourceCompatibility = '1.8'
 
 jib {
 	to {
-		image = 'albertoimpl/myapp-jib'
+		image = 'albertoimpl/myapp-micrometer'
 	}
 }
 

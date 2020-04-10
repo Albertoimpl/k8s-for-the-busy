@@ -196,64 +196,50 @@ To install them, we need to execute the following commands:
 brew install kubernetes-helm
 helm init --history-max 200
 
-k --namespace kube-system create serviceaccount tiller
-k create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
-helm init --service-account tiller --upgrade
-
-helm install --name prometheus stable/prometheus-operator
+helm install prometheus stable/prometheus
 ```
 
 we have now everything installed:
 
 ```
 k get all
-NAME                                                         READY   STATUS    RESTARTS   AGE
-pod/alertmanager-prometheus-prometheus-oper-alertmanager-0   2/2     Running   0          84s
-pod/myapp-55bbf4947c-57dcn                                   1/1     Running   0          150m
-pod/myapp-55bbf4947c-8v8c8                                   1/1     Running   0          150m
-pod/myapp-55bbf4947c-9j2ns                                   1/1     Running   0          73m
-pod/prometheus-grafana-85967c9fdd-bj5rq                      2/2     Running   0          100s
-pod/prometheus-kube-state-metrics-57d6c55b56-47bfj           1/1     Running   0          100s
-pod/prometheus-prometheus-node-exporter-x7kj4                1/1     Running   0          100s
-pod/prometheus-prometheus-oper-operator-d5b6b8494-vhfs6      2/2     Running   0          100s
-pod/prometheus-prometheus-prometheus-oper-prometheus-0       3/3     Running   1          73s
+NAME                                                READY   STATUS              RESTARTS   AGE
+pod/prometheus-alertmanager-8699647449-t6l4p        0/2     Pending             0          19s
+pod/prometheus-kube-state-metrics-6756bbbb8-n82pv   0/1     ContainerCreating   0          19s
+pod/prometheus-node-exporter-f8pcj                  0/1     ContainerCreating   0          6s
+pod/prometheus-pushgateway-6c4ff6cd9b-565qh         0/1     ContainerCreating   0          19s
+pod/prometheus-server-7b8f765454-52lzm              0/2     ContainerCreating   0          19s
 
-NAME                                              TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
-service/alertmanager-operated                     ClusterIP   None             <none>        9093/TCP,9094/TCP,9094/UDP   85s
-service/kubernetes                                ClusterIP   10.96.0.1        <none>        443/TCP                      5d14h
-service/prometheus-grafana                        ClusterIP   10.101.196.116   <none>        80/TCP                       101s
-service/prometheus-kube-state-metrics             ClusterIP   10.101.149.105   <none>        8080/TCP                     101s
-service/prometheus-operated                       ClusterIP   None             <none>        9090/TCP                     73s
-service/prometheus-prometheus-node-exporter       ClusterIP   10.98.55.141     <none>        9100/TCP                     100s
-service/prometheus-prometheus-oper-alertmanager   ClusterIP   10.101.242.134   <none>        9093/TCP                     100s
-service/prometheus-prometheus-oper-operator       ClusterIP   10.98.155.158    <none>        8080/TCP,443/TCP             100s
-service/prometheus-prometheus-oper-prometheus     ClusterIP   10.103.200.140   <none>        9090/TCP                     100s
-service/service-myapp-jib                         NodePort    10.106.15.113    <none>        8080:30738/TCP               150m
+NAME                                    TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+service/kubernetes                      ClusterIP   10.96.0.1       <none>        443/TCP    38s
+service/prometheus-alertmanager         ClusterIP   10.96.239.13    <none>        80/TCP     20s
+service/prometheus-kube-state-metrics   ClusterIP   10.96.98.31     <none>        8080/TCP   20s
+service/prometheus-node-exporter        ClusterIP   None            <none>        9100/TCP   20s
+service/prometheus-pushgateway          ClusterIP   10.96.45.208    <none>        9091/TCP   20s
+service/prometheus-server               ClusterIP   10.96.210.144   <none>        80/TCP     20s
 
-NAME                                                 DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
-daemonset.apps/prometheus-prometheus-node-exporter   1         1         1       1            1           <none>          100s
+NAME                                      DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+daemonset.apps/prometheus-node-exporter   1         1         0       1            0           <none>          20s
 
-NAME                                                  READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/myapp                                 3/3     3            3           150m
-deployment.apps/prometheus-grafana                    1/1     1            1           100s
-deployment.apps/prometheus-kube-state-metrics         1/1     1            1           100s
-deployment.apps/prometheus-prometheus-oper-operator   1/1     1            1           100s
+NAME                                            READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/prometheus-alertmanager         0/1     1            0           20s
+deployment.apps/prometheus-kube-state-metrics   0/1     1            0           20s
+deployment.apps/prometheus-pushgateway          0/1     1            0           20s
+deployment.apps/prometheus-server               0/1     1            0           20s
 
-NAME                                                            DESIRED   CURRENT   READY   AGE
-replicaset.apps/myapp-55bbf4947c                                3         3         3       150m
-replicaset.apps/prometheus-grafana-85967c9fdd                   1         1         1       100s
-replicaset.apps/prometheus-kube-state-metrics-57d6c55b56        1         1         1       100s
-replicaset.apps/prometheus-prometheus-oper-operator-d5b6b8494   1         1         1       100s
-
-NAME                                                                    READY   AGE
-statefulset.apps/alertmanager-prometheus-prometheus-oper-alertmanager   1/1     84s
-statefulset.apps/prometheus-prometheus-prometheus-oper-prometheus       1/1     73s
+NAME                                                      DESIRED   CURRENT   READY   AGE
+replicaset.apps/prometheus-alertmanager-8699647449        1         1         0       19s
+replicaset.apps/prometheus-kube-state-metrics-6756bbbb8   1         1         0       19s
+replicaset.apps/prometheus-pushgateway-6c4ff6cd9b         1         1         0       19s
+replicaset.apps/prometheus-server-7b8f765454              1         1         0       19s
 ```
 
 and after forwarding the port
 
 ```
-k port-forward service/prometheus-prometheus-oper-prometheus 9090:9090
+export POD_NAME=$(kubectl get pods --namespace default -l "app=prometheus,component=server" -o jsonpath="{.items[0].metadata.name}")
+
+kubectl --namespace default port-forward $POD_NAME 9090
 ```
 
 we can access prometheus locally in: http://localhost:9090/graph
@@ -261,14 +247,21 @@ we can access prometheus locally in: http://localhost:9090/graph
 but we will be using grafana instead:
 
 ```
-k port-forward service/prometheus-grafana 9091:80
+helm install grafana stable/grafana
+
+export POD_NAME=$(kubectl get pods --namespace default -l "app=grafana,release=grafana" -o jsonpath="{.items[0].metadata.name}")
+
+kubectl --namespace default port-forward $POD_NAME 3000
 ```
 
-http://localhost:9091/login user and password are by default `admin` and `prom-operator` but you can check in the installation guide how to set them up for production: https://github.com/helm/charts/tree/master/stable/prometheus-operator
+We need to get the `admin` password by running:
+```
+kubectl get secret --namespace default grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+```
 
-All that alone would give us a lot of interesting metrics from our cluster:
+And we should be ready to access the Grafana dashboard in http://localhost:3000
 
-image::grafana.png[Pods]
+We need to import metrics from prometheus by using the url `http://prometheus-server:80`
 
 However, that usually is not enough and we would like to gather more app-specific metrics.
 For that, spring has a project called micrometer that helps us
@@ -280,14 +273,14 @@ implementation 'org.springframework.boot:spring-boot-starter-actuator'
 implementation 'io.micrometer:micrometer-registry-prometheus'
 ```
 
-And enable a new prometheus endpoint:
+And enable a new prometheus actuator endpoint:
 
 ```
 management:
   endpoints:
     web:
       exposure:
-        include: "prometheus,info,health"
+        include: health, metrics, prometheus
 ```
 
 After this, our app will be exposing prometheus metrics in a new actuator endpoint:
@@ -307,16 +300,34 @@ jvm_memory_committed_bytes{area="nonheap",id="Compressed Class Space",} 5636096.
 process_files_max_files 10240.0
 ```
 
-For us to enable those metrics, we have to tell prometheus to scrap them:
+For us to enable these metrics, we have to tell prometheus to scrap them. The easiest way is by adding annotations to our Deployment:
 
 ```
-- job_name: 'spring-actuator'
-    metrics_path: '/actuator/prometheus'
-    scrape_interval: 5s
-    static_configs:
-    - targets: ['myapp:8080']
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: default
+  name: myapp
+  labels:
+    app: myapp
+spec:
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port:  "8080"
 ```
 
-And we should be seeing them afterwards.
+We are going to import the Spring Boot community dashboard: https://grafana.com/grafana/dashboards/10280
+
+And after updating our deployment configuration, our metrics will be appearing:
+
+image::grafana.png[Spring Boot metrics]
 
 

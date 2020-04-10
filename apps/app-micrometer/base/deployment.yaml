@@ -6,7 +6,6 @@ metadata:
   labels:
     app: myapp
 spec:
-  replicas: 3
   selector:
     matchLabels:
       app: myapp
@@ -14,9 +13,13 @@ spec:
     metadata:
       labels:
         app: myapp
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port:  "8080"
     spec:
       containers:
-        - image: albertoimpl/myapp-jib:latest
+        - image: albertoimpl/myapp-micrometer:latest
           name: myapp-jib
           livenessProbe:
             httpGet:
