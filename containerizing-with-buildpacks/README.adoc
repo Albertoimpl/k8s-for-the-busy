@@ -1,0 +1,56 @@
+= Containerizing Applications with Buildpacks
+
+We have seen tools to containerize Java applications with a single command. However, reality is that we won't be developing applications in just one language and framework.
+
+More importantly, what happens when there is a vulnerability in our base image?
+We will have to replace the base image, rebuild the whole thing and redeploy our container, making the time to patch the vulnerability in production longer.
+
+To help with these problems https://paketo.io/[Paketo Buildpacks] were created.
+
+Compared to other approaches, Paketo Buildpacks provide a higher level of abstraction and make it significantly easier for developers and operators to build images and manage them at scale.
+
+Paketo Buildpacks embrace modern container standards, such as the Open Container Initiatave (OCI) image format, allowing containers to work with different types of container engine.
+
+These Buildpacks include an optimized and lightweight base images used for build and runtime. Paketo will also ensure the image includes the latest security patches for operating system and app depencies.
+
+The way to interact with it is through a CLI. In this example we are going to use https://buildpacks.io/docs/install-pack/[pack].
+
+```
+brew install buildpacks/tap/pack
+```
+
+Build is the process of executing one or more buildpacks against the app's source code to produce a runnable OCI image, for that first we need to tell `pack` to use a builder image.
+
+A builder is an image that bundles all the bits and information on how to build your apps, such as buildpacks and build-time image, as well as executes the buildpacks against your app source code.
+
+```
+pack set-default-builder gcr.io/buildpacks/builder:v1
+```
+
+After having a builder we are ready to build our image with `pack build`:
+
+```
+pack build albertoimpl/myapp:pack-0.0.1
+```
+
+We can see the output of the `lifecycle`, it orchestrates buildpack execution, then assembles the resulting artifacts into a final app image.
+
+The phases are:
+
+* Detection – Finds an ordered group of buildpacks to use during the build phase.
+* Analysis – Restores files that buildpacks may use to optimize the build and export phases.
+* Build – Transforms application source code into runnable artifacts that can be packaged into a container.
+* Export – Creates the final OCI image.
+
+After that, we will have our OCI image ready to be run:
+
+```
+docker run -d -p 8080:8080 albertoimpl/myapp:pack-0.0.1
+```
+
+We can verify that it returns the same:
+
+```
+curl localhost:8080
+```
+

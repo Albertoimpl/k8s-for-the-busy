@@ -23,6 +23,8 @@ There are many tools for each phase of the lifecycle increasing the learning cur
 
 == <<containerizing-java/README.adoc#,Building an image from source>>
 
+== <<containerizing-with-buildpacks/README.adoc#,Building an image using Buildpacks>>
+
 == <<k8s-basics/README.adoc#,K8s basics>>
 
 == <<local-development-workflow/README.adoc#,Local Development Workflow>>
