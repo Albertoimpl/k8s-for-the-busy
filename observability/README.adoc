@@ -196,42 +196,44 @@ To install them, we need to execute the following commands:
 brew install kubernetes-helm
 helm init --history-max 200
 
-helm install prometheus stable/prometheus
+ helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+
+helm install prometheus prometheus-community/prometheus
 ```
 
 we have now everything installed:
 
 ```
 k get all
-NAME                                                READY   STATUS              RESTARTS   AGE
-pod/prometheus-alertmanager-8699647449-t6l4p        0/2     Pending             0          19s
-pod/prometheus-kube-state-metrics-6756bbbb8-n82pv   0/1     ContainerCreating   0          19s
-pod/prometheus-node-exporter-f8pcj                  0/1     ContainerCreating   0          6s
-pod/prometheus-pushgateway-6c4ff6cd9b-565qh         0/1     ContainerCreating   0          19s
-pod/prometheus-server-7b8f765454-52lzm              0/2     ContainerCreating   0          19s
+NAME                                                 READY   STATUS    RESTARTS   AGE
+pod/prometheus-alertmanager-6679f84cf5-mm4pn         2/2     Running   0          113s
+pod/prometheus-kube-state-metrics-86dc6bb59f-jllrs   1/1     Running   0          113s
+pod/prometheus-node-exporter-5gqhw                   1/1     Running   0          113s
+pod/prometheus-pushgateway-76fbb77745-hcs9x          1/1     Running   0          113s
+pod/prometheus-server-74d49c8cd6-cfqlg               2/2     Running   0          113s
 
 NAME                                    TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
-service/kubernetes                      ClusterIP   10.96.0.1       <none>        443/TCP    38s
-service/prometheus-alertmanager         ClusterIP   10.96.239.13    <none>        80/TCP     20s
-service/prometheus-kube-state-metrics   ClusterIP   10.96.98.31     <none>        8080/TCP   20s
-service/prometheus-node-exporter        ClusterIP   None            <none>        9100/TCP   20s
-service/prometheus-pushgateway          ClusterIP   10.96.45.208    <none>        9091/TCP   20s
-service/prometheus-server               ClusterIP   10.96.210.144   <none>        80/TCP     20s
+service/kubernetes                      ClusterIP   10.96.0.1       <none>        443/TCP    22m
+service/prometheus-alertmanager         ClusterIP   10.96.207.157   <none>        80/TCP     113s
+service/prometheus-kube-state-metrics   ClusterIP   10.96.235.183   <none>        8080/TCP   113s
+service/prometheus-node-exporter        ClusterIP   None            <none>        9100/TCP   113s
+service/prometheus-pushgateway          ClusterIP   10.96.84.182    <none>        9091/TCP   113s
+service/prometheus-server               ClusterIP   10.96.71.255    <none>        80/TCP     113s
 
 NAME                                      DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
-daemonset.apps/prometheus-node-exporter   1         1         0       1            0           <none>          20s
+daemonset.apps/prometheus-node-exporter   1         1         1       1            1           <none>          113s
 
 NAME                                            READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/prometheus-alertmanager         0/1     1            0           20s
-deployment.apps/prometheus-kube-state-metrics   0/1     1            0           20s
-deployment.apps/prometheus-pushgateway          0/1     1            0           20s
-deployment.apps/prometheus-server               0/1     1            0           20s
+deployment.apps/prometheus-alertmanager         1/1     1            1           113s
+deployment.apps/prometheus-kube-state-metrics   1/1     1            1           113s
+deployment.apps/prometheus-pushgateway          1/1     1            1           113s
+deployment.apps/prometheus-server               1/1     1            1           113s
 
-NAME                                                      DESIRED   CURRENT   READY   AGE
-replicaset.apps/prometheus-alertmanager-8699647449        1         1         0       19s
-replicaset.apps/prometheus-kube-state-metrics-6756bbbb8   1         1         0       19s
-replicaset.apps/prometheus-pushgateway-6c4ff6cd9b         1         1         0       19s
-replicaset.apps/prometheus-server-7b8f765454              1         1         0       19s
+NAME                                                       DESIRED   CURRENT   READY   AGE
+replicaset.apps/prometheus-alertmanager-6679f84cf5         1         1         1       113s
+replicaset.apps/prometheus-kube-state-metrics-86dc6bb59f   1         1         1       113s
+replicaset.apps/prometheus-pushgateway-76fbb77745          1         1         1       113s
+replicaset.apps/prometheus-server-74d49c8cd6               1         1         1       113s
 ```
 
 and after forwarding the port
@@ -247,11 +249,12 @@ we can access prometheus locally in: http://localhost:9090/graph
 but we will be using grafana instead:
 
 ```
-helm install grafana stable/grafana
+helm repo add grafana https://grafana.github.io/helm-charts
 
-export POD_NAME=$(kubectl get pods --namespace default -l "app=grafana,release=grafana" -o jsonpath="{.items[0].metadata.name}")
+helm install grafana grafana/grafana
 
-kubectl --namespace default port-forward $POD_NAME 3000
+export POD_NAME=$(kubectl get pods --namespace default -l "app.kubernetes.io/name=grafana,app.kubernetes.io/instance=grafana" -o jsonpath="{.items[0].metadata.name}")
+ kubectl --namespace default port-forward $POD_NAME 3000
 ```
 
 We need to get the `admin` password by running:
